@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slime Snake - Modern Space GUI Edition</title>
+    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.7.2.2.min.js"></script>
+    <style>
+        :root {
+            --bg-deep: #060b11;
+            --panel-bg: #0e1726;
+            --card-bg: #152238;
+            --border-glow: #00ffaa;
+            --border-subtle: #1e3a4c;
+            --accent-green: #00ffaa;
+            --accent-cyan: #00d8ff;
+            --accent-purple: #a855f7;
+            --accent-gold: #ffc107;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15px;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(0, 255, 170, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 40%);
+        }
+
+        /* --- MODERN SPACE HEADER / TOP BAR --- */
+        .top-bar {
+            background: var(--panel-bg);
+            border: 2px solid var(--border-subtle);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 170, 0.1);
+            border-radius: 20px;
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 860px;
+            margin-bottom: 12px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .level-badge {
+            background: linear-gradient(135deg, var(--accent-green), #00aa66);
+            color: #04120a;
+            font-weight: 900;
+            font-size: 16px;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(0, 255, 170, 0.4);
+        }
+
+        .profile-details {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .username {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .xp-bar-bg {
+            background: #101c2e;
+            width: 110px;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .xp-bar-fill {
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+            height: 100%;
+            width: 65%;
+            border-radius: 4px;
+        }
+
+        /* Resources Pills */
+        .resources {
+            display: flex;
+            gap: 12px;
+        }
+
+        .resource-pill {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 5px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .resource-pill .icon { font-size: 16px; }
+
+        .color-picker-pill {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 4px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        select {
+            background: transparent;
+            border: none;
+            color: var(--accent-green);
+            font-weight: 700;
+            cursor: pointer;
+            outline: none;
+            font-family: inherit;
+        }
+
+        select option {
+            background: var(--panel-bg);
+            color: var(--text-primary);
+        }
+
+        /* Top Action Buttons */
+        .top-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .gui-btn {
+            background: linear-gradient(180deg, #1d2e4a, #152238);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .gui-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+            transform: translateY(-2px);
+            box-shadow: 0 0 12px rgba(0, 255, 170, 0.3);
+        }
+
+        .gui-btn.primary {
+            background: linear-gradient(180deg, #00ffaa, #00b377);
+            color: #04120a;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 255, 170, 0.4);
+        }
+
+        .gui-btn.primary:hover {
+            background: linear-gradient(180deg, #33ffbb, #00cc88);
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 255, 170, 0.6);
+        }
+
+        /* --- GAME CONTAINER --- */
+        #game-wrapper {
+            position: relative;
+        }
+
+        canvas {
+            border: 2px solid var(--border-subtle);
+            background-color: #03070d;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 255, 170, 0.08);
+            border-radius: 20px;
+            display: block;
+        }
+
+        /* --- SPACE OVERLAY GUI --- */
+        .overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 860px; height: 600px;
+            background: rgba(6, 11, 17, 0.92);
+            backdrop-filter: blur(8px);
+            border-radius: 20px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            z-index: 10;
+        }
+
+        .modal-card {
+            background: var(--panel-bg);
+            border: 2px solid var(--border-subtle);
+            border-radius: 24px;
+            width: 620px;
+            padding: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 255, 170, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .modal-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 12px;
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--accent-green);
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .close-btn:hover { color: #fff; border-color: var(--accent-green); }
+
+        /* Shop Grid / Mission List Style */
+        .items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .item-row {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+
+        .item-row:hover {
+            border-color: rgba(0, 255, 170, 0.4);
+            transform: scale(1.01);
+        }
+
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .item-icon {
+            width: 44px;
+            height: 44px;
+            background: #0d1726;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .item-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .item-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .item-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .room-tag-pill {
+            background: #152238;
+            border: 1px solid var(--border-subtle);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+        }
+
+        input[type="text"] {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            color: var(--accent-green);
+            padding: 6px 12px;
+            border-radius: 10px;
+            width: 80px;
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 13px;
+            outline: none;
+        }
+        input[type="text"]:focus { border-color: var(--accent-green); }
+    </style>
+</head>
+<body>
+
+    <!-- TOP SPACE GUI HEADER -->
+    <div class="top-bar">
+        <!-- User Level & XP -->
+        <div class="user-info">
+            <div class="level-badge">3</div>
+            <div class="profile-details">
+                <span class="username">SLIME PILOT</span>
+                <div class="xp-bar-bg"><div class="xp-bar-fill"></div></div>
+            </div>
+        </div>
+
+        <!-- Color Selector Pill -->
+        <div class="color-picker-pill">
+            <span>🎨 FARGE:</span>
+            <select id="color-select" onchange="updatePlayerColor(this.value)">
+                <option value="#00ffaa">NEON GRØNN</option>
+                <option value="#00d8ff">CYAN BLAST</option>
+                <option value="#33ff55">LIME MATRIX</option>
+                <option value="#a855f7">PURPLE NEBULA</option>
+                <option value="#ffc107">GOLD SLIME</option>
+            </select>
+        </div>
+
+        <!-- Resources Pill -->
+        <div class="resources">
+            <div class="resource-pill">
+                <span class="icon">🧪</span>
+                <span id="coins-display" style="color: var(--accent-green)">0</span>
+            </div>
+            <div class="resource-pill">
+                <span class="icon">⭐</span>
+                <span id="score-display" style="color: var(--accent-cyan)">0</span>
+            </div>
+        </div>
+
+        <!-- Online Room Controls -->
+        <div style="display:flex; gap:6px; align-items:center;">
+            <button class="gui-btn" onclick="createOnlineRoom()">HOST 2P</button>
+            <input type="text" id="join-code-input" placeholder="KODE" maxlength="4">
+            <button class="gui-btn" onclick="joinOnlineRoom()">JOIN</button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="top-actions">
+            <button class="gui-btn primary" onclick="toggleShop()">🛒 SHOP</button>
+            <button class="gui-btn" onclick="restartGame()">🔄 [R]</button>
+        </div>
+    </div>
+
+    <div id="game-wrapper">
+        <canvas id="gameCanvas" width="860" height="600"></canvas>
+
+        <!-- SHOP / MISSIONS OVERLAY -->
+        <div id="shop-overlay" class="overlay">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <span>🧪</span> MATRIX SHOP & UPGRADES
+                    </div>
+                    <div class="close-btn" onclick="toggleShop()">✕</div>
+                </div>
+
+                <div class="items-list">
+                    <!-- Shop Item 1 -->
+                    <div class="item-row">
+                        <div class="item-info">
+                            <div class="item-icon">⚡</div>
+                            <div class="item-details">
+                                <span class="item-name">Trippel Skudd</span>
+                                <span class="item-desc">Skyter 3 laserskudd i vifteform</span>
+                            </div>
+                        </div>
+                        <button class="gui-btn primary" onclick="buyUpgrade('tripleShot')" id="btn-tripleShot">60 🧪</button>
+                    </div>
+
+                    <!-- Shop Item 2 -->
+                    <div class="item-row">
+                        <div class="item-info">
+                            <div class="item-icon">💥</div>
+                            <div class="item-details">
+                                <span class="item-name">Eksplosiv Laser</span>
+                                <span class="item-desc">Doble størrelse på alle prosjektiler</span>
+                            </div>
+                        </div>
+                        <button class="gui-btn primary" onclick="buyUpgrade('bigBullets')" id="btn-bigBullets">80 🧪</button>
+                    </div>
+
+                    <!-- Shop Item 3 -->
+                    <div class="item-row">
+                        <div class="item-info">
+                            <div class="item-icon">🧲</div>
+                            <div class="item-details">
+                                <span class="item-name">Mat Magnet</span>
+                                <span class="item-desc">Trekker mat og mynter mot slangen</span>
+                            </div>
+                        </div>
+                        <button class="gui-btn primary" onclick="buyUpgrade('magnet')" id="btn-magnet">100 🧪</button>
+                    </div>
+
+                    <!-- Shop Item 4 -->
+                    <div class="item-row">
+                        <div class="item-info">
+                            <div class="item-icon">🛡️</div>
+                            <div class="item-details">
+                                <span class="item-name">Matrix Skjold</span>
+                                <span class="item-desc">Beskytter deg mot 1 kollisjon</span>
+                            </div>
+                        </div>
+                        <button class="gui-btn primary" onclick="buyUpgrade('shield')" id="btn-shield">120 🧪</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME OVER OVERLAY -->
+        <div id="gameover-overlay" class="overlay">
+            <div class="modal-card" style="width: 420px; text-align: center;">
+                <h2 style="color: var(--accent-green); font-size: 32px; margin: 0 0 10px 0;">GAME OVER</h2>
+                <p id="winner-text" style="color: var(--text-secondary); font-size: 16px; margin-bottom: 20px;"></p>
+                <button class="gui-btn primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 16px;" onclick="restartGame()">PRØV IGJEN [R]</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const gridSize = 20;
+        const tileCountX = canvas.width / gridSize;
+        const tileCountY = canvas.height / gridSize;
+
+        let pubnub = null;
+        let roomCode = null;
+        let myPlayerId = 1;
+        let isMultiplayer = false;
+
+        // Custom Player Colors
+        let p1Color = "#00ffaa";
+        let p2Color = "#00d8ff";
+
+        // Player Economy & Shop Status
+        let coins = 0;
+        let upgrades = { tripleShot: false, bigBullets: false, magnet: false, shield: false };
+
+        // FX
+        let shakeTime = 0;
+        let pulseTimer = 0;
+
+        // Sound System
+        let audioCtx = null;
+        function playSound(type) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'eat') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(450, now); osc.frequency.exponentialRampToValueAtTime(900, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'shoot') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(700, now); osc.frequency.exponentialRampToValueAtTime(200, now + 0.08);
+                gain.gain.setValueAtTime(0.08, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now); osc.stop(now + 0.08);
+            } else if (type === 'hit') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+                gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'buy') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(1000, now + 0.2);
+                gain.gain.setValueAtTime(0.12, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            }
+        }
+
+        // Game Entities
+        let p1Snake = []; let p1Dx = 0, p1Dy = -1; let p1Score = 0; let p1Alive = true;
+        let p2Snake = []; let p2Dx = 0, p2Dy = -1; let p2Score = 0; let p2Alive = false;
+        let food = { x: 10, y: 10 };
+        let bullets = []; let enemies = []; let particles = [];
+        let isGameOver = false; let isShopOpen = false;
+
+        function updatePlayerColor(val) {
+            if (myPlayerId === 1) p1Color = val;
+            else p2Color = val;
+            broadcast({ type: 'color', player: myPlayerId, color: val });
+        }
+
+        // --- NETWORKING ---
+        function initPubNub() {
+            if (pubnub) return;
+            pubnub = new PubNub({
+                publishKey: 'pub-c-897b791f-0b32-4d7a-8b36-a83d73bc92eb',
+                subscribeKey: 'sub-c-17e9bb49-eb41-4171-8b2b-0ff2270928a6',
+                userId: "user_" + Math.floor(Math.random() * 10000)
+            });
+
+            pubnub.addListener({
+                message: function(event) {
+                    const data = event.message;
+                    if (data.sender === myPlayerId) return;
+
+                    if (data.type === 'move') {
+                        if (data.player === 1) { p1Dx = data.dx; p1Dy = data.dy; }
+                        if (data.player === 2) { p2Dx = data.dx; p2Dy = data.dy; }
+                    } else if (data.type === 'shoot') {
+                        shoot(data.player, false);
+                    } else if (data.type === 'restart') {
+                        restartGame(false);
+                    } else if (data.type === 'join') {
+                        isMultiplayer = true; p2Alive = true;
+                    } else if (data.type === 'color') {
+                        if (data.player === 1) p1Color = data.color;
+                        if (data.player === 2) p2Color = data.color;
+                    }
+                }
+            });
+        }
+
+        function createOnlineRoom() {
+            initPubNub();
+            roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+            myPlayerId = 1; isMultiplayer = true; p2Alive = true;
+            pubnub.subscribe({ channels: ['slime_snake_' + roomCode] });
+            alert("Rom opprettet! Gi koden " + roomCode + " til en venn.");
+            restartGame();
+        }
+
+        function joinOnlineRoom() {
+            const input = document.getElementById("join-code-input").value.trim();
+            if (input.length !== 4) { alert("Skriv inn en 4-sifret kode!"); return; }
+            initPubNub();
+            roomCode = input; myPlayerId = 2; isMultiplayer = true; p2Alive = true;
+            pubnub.subscribe({ channels: ['slime_snake_' + roomCode] });
+            broadcast({ type: 'join' });
+            alert("Tilkoblet! Du er Spiller 2.");
+            restartGame();
+        }
+
+        function broadcast(data) {
+            if (!pubnub || !roomCode) return;
+            data.sender = myPlayerId;
+            pubnub.publish({ channel: 'slime_snake_' + roomCode, message: data });
+        }
+
+        // --- SHOP ---
+        function toggleShop() {
+            isShopOpen = !isShopOpen;
+            document.getElementById("shop-overlay").style.display = isShopOpen ? "flex" : "none";
+        }
+
+        function buyUpgrade(type) {
+            if (type === 'tripleShot' && coins >= 60 && !upgrades.tripleShot) {
+                coins -= 60; upgrades.tripleShot = true; playSound('buy');
+                document.getElementById('btn-tripleShot').innerText = "KJØPT";
+            } else if (type === 'bigBullets' && coins >= 80 && !upgrades.bigBullets) {
+                coins -= 80; upgrades.bigBullets = true; playSound('buy');
+                document.getElementById('btn-bigBullets').innerText = "KJØPT";
+            } else if (type === 'magnet' && coins >= 100 && !upgrades.magnet) {
+                coins -= 100; upgrades.magnet = true; playSound('buy');
+                document.getElementById('btn-magnet').innerText = "KJØPT";
+            } else if (type === 'shield' && coins >= 120 && !upgrades.shield) {
+                coins -= 120; upgrades.shield = true; playSound('buy');
+                document.getElementById('btn-shield').innerText = "AKTIV";
+            }
+            document.getElementById("coins-display").innerText = coins;
+        }
+
+        // --- GAME LOGIC ---
+        function shoot(player, sendNetwork = true) {
+            if (isGameOver || isShopOpen) return;
+            playSound('shoot');
+
+            let color = player === 1 ? p1Color : p2Color;
+            let size = upgrades.bigBullets ? 8 : 4;
+            let snake = player === 1 ? p1Snake : p2Snake;
+            let dx = player === 1 ? p1Dx : p2Dx;
+            let dy = player === 1 ? p1Dy : p2Dy;
+
+            if (snake.length > 0) {
+                let head = snake[0];
+                bullets.push({ x: head.x + dx, y: head.y + dy, vx: dx * 1.5, vy: dy * 1.5, color: color, owner: player, size: size });
+
+                if (upgrades.tripleShot) {
+                    bullets.push({ x: head.x + dx, y: head.y + dy, vx: (dx + dy*0.5) * 1.3, vy: (dy + dx*0.5) * 1.3, color: color, owner: player, size: size });
+                    bullets.push({ x: head.x + dx, y: head.y + dy, vx: (dx - dy*0.5) * 1.3, vy: (dy - dx*0.5) * 1.3, color: color, owner: player, size: size });
+                }
+            }
+
+            if (sendNetwork) broadcast({ type: 'shoot', player: player });
+        }
+
+        function update() {
+            if (isGameOver || isShopOpen) return;
+            pulseTimer += 0.1;
+
+            if (upgrades.magnet && p1Alive && p1Snake.length > 0) {
+                let head = p1Snake[0];
+                let dist = Math.hypot(head.x - food.x, head.y - food.y);
+                if (dist < 6) {
+                    food.x += (head.x - food.x) * 0.1;
+                    food.y += (head.y - food.y) * 0.1;
+                }
+            }
+
+            if (p1Alive && (p1Dx !== 0 || p1Dy !== 0)) {
+                let newX = (p1Snake[0].x + p1Dx + tileCountX) % tileCountX;
+                let newY = (p1Snake[0].y + p1Dy + tileCountY) % tileCountY;
+                let head = { x: newX, y: newY };
+
+                if (checkSelfCollision(head, p1Snake) || checkEnemyCollision(head)) {
+                    if (upgrades.shield) {
+                        upgrades.shield = false;
+                        document.getElementById('btn-shield').innerText = "120 🧪";
+                        addExplosion(head.x, head.y, p1Color); shakeTime = 10;
+                    } else {
+                        p1Alive = false; addExplosion(head.x, head.y, p1Color); shakeTime = 15;
+                    }
+                } else {
+                    p1Snake.unshift(head);
+                    addTrail(head.x, head.y, p1Color);
+                    if (Math.hypot(head.x - food.x, head.y - food.y) < 1) {
+                        p1Score += 10; coins += 5; playSound('eat'); addExplosion(food.x, food.y, "#ffffff"); spawnFood();
+                    } else { p1Snake.pop(); }
+                }
+            }
+
+            if (isMultiplayer && p2Alive && (p2Dx !== 0 || p2Dy !== 0)) {
+                let newX = (p2Snake[0].x + p2Dx + tileCountX) % tileCountX;
+                let newY = (p2Snake[0].y + p2Dy + tileCountY) % tileCountY;
+                let head = { x: newX, y: newY };
+
+                if (checkSelfCollision(head, p2Snake) || checkEnemyCollision(head)) {
+                    p2Alive = false; addExplosion(head.x, head.y, p2Color); shakeTime = 15;
+                } else {
+                    p2Snake.unshift(head);
+                    addTrail(head.x, head.y, p2Color);
+                    if (Math.hypot(head.x - food.x, head.y - food.y) < 1) {
+                        p2Score += 10; coins += 5; playSound('eat'); addExplosion(food.x, food.y, "#ffffff"); spawnFood();
+                    } else { p2Snake.pop(); }
+                }
+            }
+
+            if (!p1Alive && (!isMultiplayer || !p2Alive)) { triggerGameOver(); return; }
+
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i]; b.x += b.vx; b.y += b.vy;
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let e = enemies[j];
+                    if (Math.hypot(b.x - e.x, b.y - e.y) < (b.size > 5 ? 1.6 : 1.1)) {
+                        e.hp -= 1; playSound('hit'); addExplosion(e.x, e.y, b.color); bullets.splice(i, 1);
+                        if (e.hp <= 0) { enemies.splice(j, 1); p1Score += 15; coins += 4; shakeTime = 5; }
+                        break;
+                    }
+                }
+                if (b && (b.x < 0 || b.x >= tileCountX || b.y < 0 || b.y >= tileCountY)) bullets.splice(i, 1);
+            }
+
+            if (Math.random() < 0.045) {
+                let isTank = Math.random() < 0.2;
+                let isFast = !isTank && Math.random() < 0.3;
+                enemies.push({
+                    x: Math.floor(Math.random() * tileCountX), y: 0,
+                    speed: isFast ? 0.14 : (isTank ? 0.04 : 0.08),
+                    hp: isTank ? 3 : 1, type: isTank ? 'tank' : (isFast ? 'fast' : 'normal')
+                });
+            }
+
+            enemies.forEach((e) => {
+                let target = p1Alive ? p1Snake[0] : (p2Snake[0] || {x: 0, y: 0});
+                let angle = Math.atan2(target.y - e.y, target.x - e.x);
+                e.x += Math.cos(angle) * e.speed; e.y += Math.sin(angle) * e.speed;
+            });
+
+            document.getElementById("score-display").innerText = p1Score + p2Score;
+            document.getElementById("coins-display").innerText = coins;
+        }
+
+        function checkSelfCollision(head, snakeArray) {
+            for (let i = 1; i < snakeArray.length; i++) {
+                if (snakeArray[i].x === head.x && snakeArray[i].y === head.y) return true;
+            }
+            return false;
+        }
+
+        function checkEnemyCollision(head) {
+            for (let e of enemies) {
+                if (Math.hypot(head.x - e.x, head.y - e.y) < 0.8) return true;
+            }
+            return false;
+        }
+
+        function spawnFood() {
+            food = { x: Math.floor(Math.random() * tileCountX), y: Math.floor(Math.random() * tileCountY) };
+        }
+
+        function addTrail(x, y, color) {
+            particles.push({
+                x: x * gridSize + gridSize / 2, y: y * gridSize + gridSize / 2,
+                vx: 0, vy: 0, life: 6, color: color, size: gridSize / 3
+            });
+        }
+
+        function addExplosion(x, y, color) {
+            for (let i = 0; i < 14; i++) {
+                particles.push({
+                    x: x * gridSize + gridSize / 2, y: y * gridSize + gridSize / 2,
+                    vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 7,
+                    life: 14, color: color, size: 3
+                });
+            }
+        }
+
+        function triggerGameOver() {
+            isGameOver = true;
+            let msg = `Du samlet ${p1Score + p2Score} poeng!`;
+            if (isMultiplayer) {
+                if (p1Score > p2Score) msg = "Spiller 1 vant!";
+                else if (p2Score > p1Score) msg = "Spiller 2 vant!";
+            }
+            document.getElementById("winner-text").innerText = msg;
+            document.getElementById("gameover-overlay").style.display = "flex";
+        }
+
+        function restartGame(sendNetwork = true) {
+            p1Snake = [{ x: 8, y: 15 }, { x: 8, y: 16 }]; p1Dx = 0; p1Dy = -1; p1Score = 0; p1Alive = true;
+            p2Snake = isMultiplayer ? [{ x: 30, y: 15 }, { x: 30, y: 16 }] : []; p2Dx = 0; p2Dy = -1; p2Score = 0; p2Alive = isMultiplayer;
+            bullets = []; enemies = []; particles = []; isGameOver = false; isShopOpen = false;
+            document.getElementById("gameover-overlay").style.display = "none";
+            document.getElementById("shop-overlay").style.display = "none";
+            spawnFood();
+
+            if (sendNetwork) broadcast({ type: 'restart' });
+        }
+
+        function render() {
+            ctx.save();
+
+            if (shakeTime > 0) {
+                ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
+                shakeTime--;
+            }
+
+            ctx.fillStyle = "#03070d"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Subtle Grid Lines
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i]; ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                p.x += p.vx; p.y += p.vy; p.life--;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            let glow = 2 + Math.sin(pulseTimer) * 2;
+            ctx.fillStyle = "#ffffff"; ctx.shadowColor = p1Color; ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(food.x * gridSize + gridSize / 2, food.y * gridSize + gridSize / 2, gridSize / 2 - glow, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+
+            if (p1Alive) {
+                p1Snake.forEach((part, i) => {
+                    ctx.fillStyle = i === 0 ? "#ffffff" : p1Color; ctx.beginPath();
+                    ctx.arc(part.x * gridSize + gridSize / 2, part.y * gridSize + gridSize / 2, gridSize / 2 - 1, 0, Math.PI * 2); ctx.fill();
+                });
+            }
+
+            if (isMultiplayer && p2Alive) {
+                p2Snake.forEach((part, i) => {
+                    ctx.fillStyle = i === 0 ? "#ffffff" : p2Color; ctx.beginPath();
+                    ctx.arc(part.x * gridSize + gridSize / 2, part.y * gridSize + gridSize / 2, gridSize / 2 - 1, 0, Math.PI * 2); ctx.fill();
+                });
+            }
+
+            bullets.forEach(b => {
+                ctx.fillStyle = b.color; ctx.beginPath();
+                ctx.arc(b.x * gridSize + gridSize / 2, b.y * gridSize + gridSize / 2, b.size, 0, Math.PI * 2); ctx.fill();
+            });
+
+            enemies.forEach(e => {
+                if (e.type === 'tank') ctx.fillStyle = "#a855f7";
+                else if (e.type === 'fast') ctx.fillStyle = "#00d8ff";
+                else ctx.fillStyle = "#00ffaa";
+
+                ctx.beginPath();
+                ctx.arc(e.x * gridSize + gridSize / 2, e.y * gridSize + gridSize / 2, (e.type === 'tank' ? gridSize/2 : gridSize/2 - 2), 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.restore();
+        }
+
+        document.addEventListener("keydown", e => {
+            const k = e.key; const code = e.code;
+            if (k === 'r' || k === 'R') restartGame();
+            if (k === 'b' || k === 'B') toggleShop();
+
+            let dx = 0, dy = 0;
+            if (k === 'ArrowLeft' || k === 'a' || k === 'A') { dx = -1; dy = 0; }
+            if (k === 'ArrowUp' || k === 'w' || k === 'W') { dx = 0; dy = -1; }
+            if (k === 'ArrowRight' || k === 'd' || k === 'D') { dx = 1; dy = 0; }
+            if (k === 'ArrowDown' || k === 's' || k === 'S') { dx = 0; dy = 1; }
+
+            if (dx !== 0 || dy !== 0) {
+                if (myPlayerId === 1 && dx !== -p1Dx) { p1Dx = dx; p1Dy = dy; broadcast({ type: 'move', player: 1, dx: dx, dy: dy }); }
+                if (myPlayerId === 2 && dx !== -p2Dx) { p2Dx = dx; p2Dy = dy; broadcast({ type: 'move', player: 2, dx: dx, dy: dy }); }
+            }
+
+            if (code === 'Space' || code === 'KeyF') shoot(myPlayerId);
+        });
+
+        setInterval(() => { update(); render(); }, 75);
+        restartGame(false);
+    </script>
+</body>
+</html>
